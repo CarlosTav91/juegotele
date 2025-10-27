@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detective Satelital - Aprende Teledetección</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e8ba3 100%);
+            color: #fff;
+            overflow-x: hidden;
+        }
+        
+        .game-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            transition: transform 0.3s;
+        }
+        
+        .stat-item:hover {
+            transform: scale(1.05);
+        }
+        
+        .stat-item i {
+            font-size: 1.5em;
+        }
+        
+        .stat-value {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .sidebar {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .mission-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+        
+        .mission-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .mission-card.active {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+        
+        .mission-card.completed {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .mission-title {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .mission-description {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .map-container {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #map {
+            height: 500px;
+            border-radius: 10px;
+            border: 3px solid rgba(255,255,255,0.2);
+        }
+        
+        .quiz-panel {
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .quiz-panel.active {
+            display: block;
+            animation: slideIn 0.5s;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .quiz-question {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+        }
+        
+        .quiz-options {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .quiz-option {
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .quiz-option:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.5);
+        }
+        
+        .quiz-option.correct {
+            background: rgba(76, 175, 80, 0.5);
+            border-color: #4CAF50;
+        }
+        
+        .quiz-option.incorrect {
+            background: rgba(244, 67, 54, 0.5);
+            border-color: #f44336;
+        }
+        
+        .achievements {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .achievement {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .achievement.unlocked {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            animation: pulse 2s infinite;
+        }
+        
+        .achievement i {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .achievement-name {
+            font-size: 0.8em;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .level-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #000;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            z-index: 1000;
+            display: none;
+            max-width: 200px;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            z-index: 2000;
+            animation: slideInRight 0.5s;
+            display: none;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+        
+        .satellite-bands {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .band-button {
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .band-button:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.6);
+        }
+        
+        .band-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #ffd700;
+        }
+        
+        .easter-egg {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #ff6b6b, #4ecdc4);
+            border-radius: 50%;
+            cursor: pointer;
+            animation: float 3s ease-in-out infinite;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            #map {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1><i class="fas fa-satellite"></i> Detective Satelital</h1>
+            <p>Explora el mundo desde el espacio y aprende teledetección</p>
+            <span class="level-badge">Nivel <span id="level">1</span></span>
+        </div>
+        
+        <div class="stats-bar">
+            <div class="stat-item" title="Puntos de experiencia">
+                <i class="fas fa-star" style="color: #ffd700;"></i>
+                <span class="stat-value" id="xp">0</span> XP
+            </div>
+            <div class="stat-item" title="Monedas espaciales">
+                <i class="fas fa-coins" style="color: #ffd700;"></i>
+                <span class="stat-value" id="coins">0</span>
+            </div>
+            <div class="stat-item" title="Misiones completadas">
+                <i class="fas fa-check-circle" style="color: #4CAF50;"></i>
+                <span class="stat-value" id="missions-completed">0</span>/6
+            </div>
+            <div class="stat-item" title="Precisión en respuestas">
+                <i class="fas fa-bullseye" style="color: #ff6b6b;"></i>
+                <span class="stat-value" id="accuracy">100</span>%
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <h2><i class="fas fa-tasks"></i> Misiones</h2>
+                <div id="missions-container"></div>
+                
+                <h2 style="margin-top: 30px;"><i class="fas fa-trophy"></i> Logros</h2>
+                <div class="achievements" id="achievements"></div>
+            </div>
+            
+            <div class="map-container">
+                <h2><i class="fas fa-globe"></i> Mapa Satelital</h2>
+                <div class="satellite-bands">
+                    <div class="band-button" data-band="rgb">
+                        <i class="fas fa-eye"></i><br>RGB
+                    </div>
+                    <div class="band-button" data-band="ndvi">
+                        <i class="fas fa-leaf"></i><br>NDVI
+                    </div>
+                    <div class="band-button" data-band="thermal">
+                        <i class="fas fa-thermometer"></i><br>Térmico
+                    </div>
+                    <div class="band-button" data-band="sar">
+                        <i class="fas fa-broadcast-tower"></i><br>SAR
+                    </div>
+                </div>
+                <div id="map"></div>
+                
+                <div class="quiz-panel" id="quiz-panel">
+                    <h3 class="quiz-question" id="quiz-question"></h3>
+                    <div class="quiz-options" id="quiz-options"></div>
+                    <button class="btn" id="next-btn" style="display:none;">Siguiente Misión</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification"></div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        const gameState = {
+            xp: 0,
+            coins: 0,
+            level: 1,
+            missionsCompleted: 0,
+            correctAnswers: 0,
+            totalAnswers: 0,
+            currentMission: 0,
+            unlockedAchievements: [],
+            easterEggsFound: 0
+        };
+        
+        const missions = [
+            {
+                id: 1,
+                title: "Introducción a la Teledetección",
+                description: "Descubre qué es la teledetección y cómo funciona",
+                icon: "fa-satellite",
+                lat: 4.5709,
+                lng: -74.2973,
+                zoom: 6,
+                question: "¿Qué es la teledetección?",
+                options: [
+                    "La técnica de obtener información sobre objetos sin contacto físico directo",
+                    "Un tipo de comunicación por radio",
+                    "Un sistema de navegación GPS",
+                    "Una forma de comunicación telefónica"
+                ],
+                correct: 0,
+                reward: 100
+            },
+            {
+                id: 2,
+                title: "Espectro Electromagnético",
+                description: "Aprende sobre las diferentes bandas espectrales",
+                icon: "fa-rainbow",
+                lat: -0.1807,
+                lng: -78.4678,
+                zoom: 8,
+                question: "¿Qué región del espectro es invisible al ojo humano pero útil para detectar vegetación?",
+                options: [
+                    "Luz visible",
+                    "Infrarrojo cercano",
+                    "Ultravioleta",
+                    "Microondas"
+                ],
+                correct: 1,
+                reward: 150
+            },
+            {
+                id: 3,
+                title: "Índice NDVI",
+                description: "Comprende cómo medir la salud de la vegetación",
+                icon: "fa-leaf",
+                lat: 6.2476,
+                lng: -75.5658,
+                zoom: 11,
+                question: "¿Qué indica un valor alto de NDVI?",
+                options: [
+                    "Área urbana densa",
+                    "Vegetación saludable y densa",
+                    "Cuerpo de agua",
+                    "Suelo desnudo"
+                ],
+                correct: 1,
+                reward: 200
+            },
+            {
+                id: 4,
+                title: "Imágenes Térmicas",
+                description: "Explora el mundo invisible del calor",
+                icon: "fa-fire",
+                lat: 11.2408,
+                lng: -74.1990,
+                zoom: 10,
+                question: "¿Para qué se utiliza principalmente la banda térmica?",
+                options: [
+                    "Identificar tipos de vegetación",
+                    "Medir la temperatura de superficie y detectar incendios",
+                    "Crear mapas topográficos",
+                    "Detectar contaminación del aire"
+                ],
+                correct: 1,
+                reward: 250
+            },
+            {
+                id: 5,
+                title: "Radar SAR",
+                description: "Descubre cómo ver a través de las nubes",
+                icon: "fa-cloud",
+                lat: 1.2136,
+                lng: -77.2811,
+                zoom: 9,
+                question: "¿Cuál es la principal ventaja del radar SAR?",
+                options: [
+                    "Mejor resolución de color",
+                    "Puede penetrar nubes y operar de día y noche",
+                    "Menor costo de operación",
+                    "Imágenes más nítidas"
+                ],
+                correct: 1,
+                reward: 300
+            },
+            {
+                id: 6,
+                title: "Aplicaciones Ambientales",
+                description: "Usa la teledetección para proteger el planeta",
+                icon: "fa-globe-americas",
+                lat: -4.0989,
+                lng: -69.9425,
+                zoom: 7,
+                question: "¿Cuál NO es una aplicación común de la teledetección ambiental?",
+                options: [
+                    "Monitoreo de deforestación",
+                    "Predicción del clima local diario",
+                    "Seguimiento de cambios en glaciares",
+                    "Detección de derrames de petróleo"
+                ],
+                correct: 1,
+                reward: 350
+            }
+        ];
+        
+        const achievements = [
+            { id: 1, name: "Primer Paso", icon: "fa-shoe-prints", condition: () => gameState.missionsCompleted >= 1 },
+            { id: 2, name: "Explorador", icon: "fa-compass", condition: () => gameState.missionsCompleted >= 3 },
+            { id: 3, name: "Experto", icon: "fa-graduation-cap", condition: () => gameState.missionsCompleted >= 6 },
+            { id: 4, name: "Perfección", icon: "fa-star", condition: () => gameState.correctAnswers === gameState.totalAnswers && gameState.totalAnswers >= 6 },
+            { id: 5, name: "Rico", icon: "fa-gem", condition: () => gameState.coins >= 1000 },
+            { id: 6, name: "Cazador", icon: "fa-egg", condition: () => gameState.easterEggsFound >= 3 }
+        ];
+        
+        let map;
+        let currentMarker;
+        
+        function initMap() {
+            map = L.map('map').setView([4.5709, -74.2973], 6);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            loadMission(0);
+        }
+        
+        function loadMission(index) {
+            if (index >= missions.length) {
+                showNotification("¡Felicidades! Has completado todas las misiones 🎉");
+                return;
+            }
+            
+            gameState.currentMission = index;
+            const mission = missions[index];
+            
+            map.setView([mission.lat, mission.lng], mission.zoom);
+            
+            if (currentMarker) {
+                map.removeLayer(currentMarker);
+            }
+            
+            const icon = L.divIcon({
+                html: `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"><i class="fas ${mission.icon}" style="color: white; font-size: 1.2em;"></i></div>`,
+                className: '',
+                iconSize: [40, 40]
+            });
+            
+            currentMarker = L.marker([mission.lat, mission.lng], { icon }).addTo(map);
+            
+            currentMarker.on('click', () => {
+                showQuiz(mission);
+            });
+            
+            updateMissionsUI();
+        }
+        
+        function showQuiz(mission) {
+            const panel = document.getElementById('quiz-panel');
+            const question = document.getElementById('quiz-question');
+            const optionsContainer = document.getElementById('quiz-options');
+            
+            question.textContent = mission.question;
+            optionsContainer.innerHTML = '';
+            
+            mission.options.forEach((option, index) => {
+                const div = document.createElement('div');
+                div.className = 'quiz-option';
+                div.textContent = option;
+                div.onclick = () => checkAnswer(index, mission.correct, mission, div);
+                optionsContainer.appendChild(div);
+            });
+            
+            panel.classList.add('active');
+        }
+        
+        function checkAnswer(selected, correct, mission, element) {
+            gameState.totalAnswers++;
+            
+            const options = document.querySelectorAll('.quiz-option');
+            options.forEach(opt => opt.style.pointerEvents = 'none');
+            
+            if (selected === correct) {
+                element.classList.add('correct');
+                gameState.correctAnswers++;
+                gameState.xp += mission.reward;
+                gameState.coins += Math.floor(mission.reward / 2);
+                gameState.missionsCompleted++;
+                
+                showNotification(`¡Correcto! +${mission.reward} XP, +${Math.floor(mission.reward / 2)} monedas`);
+                
+                checkLevelUp();
+                checkAchievements();
+                
+                setTimeout(() => {
+                    document.getElementById('next-btn').style.display = 'block';
+                }, 1000);
+            } else {
+                element.classList.add('incorrect');
+                options[correct].classList.add('correct');
+                showNotification("Incorrecto. ¡Sigue intentando!");
+            }
+            
+            updateStats();
+            updateMissionsUI();
+        }
+        
+        function updateStats() {
+            document.getElementById('xp').textContent = gameState.xp;
+            document.getElementById('coins').textContent = gameState.coins;
+            document.getElementById('missions-completed').textContent = gameState.missionsCompleted;
+            document.getElementById('level').textContent = gameState.level;
+            
+            const accuracy = gameState.totalAnswers > 0 
+                ? Math.round((gameState.correctAnswers / gameState.totalAnswers) * 100)
+                : 100;
+            document.getElementById('accuracy').textContent = accuracy;
+        }
+        
+        function checkLevelUp() {
+            const newLevel = Math.floor(gameState.xp / 500) + 1;
+            if (newLevel > gameState.level) {
+                gameState.level = newLevel;
+                showNotification(`¡Subiste al nivel ${newLevel}! 🎊`);
+            }
+        }
+        
+        function checkAchievements() {
+            achievements.forEach(achievement => {
+                if (!gameState.unlockedAchievements.includes(achievement.id) && achievement.condition()) {
+                    gameState.unlockedAchievements.push(achievement.id);
+                    showNotification(`¡Logro desbloqueado: ${achievement.name}! 🏆`);
+                    updateAchievementsUI();
+                }
+            });
+        }
+        
+        function updateMissionsUI() {
+            const container = document.getElementById('missions-container');
+            container.innerHTML = '';
+            
+            missions.forEach((mission, index) => {
+                const div = document.createElement('div');
+                div.className = 'mission-card';
+                
+                if (index < gameState.missionsCompleted) {
+                    div.classList.add('completed');
+                } else if (index === gameState.currentMission) {
+                    div.classList.add('active');
+                }
+                
+                div.innerHTML = `
+                    <div class="mission-title">
+                        <i class="fas ${mission.icon}"></i>
+                        ${mission.title}
+                        ${index < gameState.missionsCompleted ? '<i class="fas fa-check-circle" style="color: #4CAF50; margin-left: auto;"></i>' : ''}
+                    </div>
+                    <div class="mission-description">${mission.description}</div>
+                    <div style="margin-top: 10px; font-size: 0.9em;">
+                        <i class="fas fa-star" style="color: #ffd700;"></i> ${mission.reward} XP
+                    </div>
+                `;
+                
+                div.onclick = () => {
+                    if (index <= gameState.missionsCompleted) {
+                        loadMission(index);
+                    }
+                };
+                
+                container.appendChild(div);
+            });
+        }
+        
+        function updateAchievementsUI() {
+            const container = document.getElementById('achievements');
+            container.innerHTML = '';
+            
+            achievements.forEach(achievement => {
+                const div = document.createElement('div');
+                div.className = 'achievement';
+                
+                if (gameState.unlockedAchievements.includes(achievement.id)) {
+                    div.classList.add('unlocked');
+                }
+                
+                div.innerHTML = `
+                    <i class="fas ${achievement.icon}"></i>
+                    <div class="achievement-name">${achievement.name}</div>
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+        
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.innerHTML = `<i class="fas fa-bell"></i> ${message}`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        document.getElementById('next-btn').addEventListener('click', () => {
+            document.getElementById('quiz-panel').classList.remove('active');
+            document.getElementById('next-btn').style.display = 'none';
+            loadMission(gameState.currentMission + 1);
+        });
+        
+        document.querySelectorAll('.band-button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.band-button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const band = this.dataset.band;
+                showNotification(`Vista ${band.toUpperCase()} activada 🛰️`);
+            });
+        });
+        
+        function createEasterEggs() {
+            for (let i = 0; i < 3; i++) {
+                const egg = document.createElement('div');
+                egg.className = 'easter-egg';
+                egg.innerHTML = '🥚';
+                egg.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+                egg.style.top = Math.random() * (window.innerHeight - 50) + 'px';
+                
+                egg.onclick = function() {
+                    gameState.easterEggsFound++;
+                    gameState.coins += 100;
+                    showNotification('¡Huevo de pascua encontrado! +100 monedas 🥚');
+                    this.remove();
+                    checkAchievements();
+                    updateStats();
+                };
+                
+                document.body.appendChild(egg);
+            }
+        }
+        
+        window.onload = () => {
+            initMap();
+            updateMissionsUI();
+            updateAchievementsUI();
+            updateStats();
+            createEasterEggs();
+        };
+    </script>
+</body>
+</html>
